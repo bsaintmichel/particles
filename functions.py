@@ -1,12 +1,9 @@
 # functions.py
 
+import pandas as pd
 import numpy as np
 import pims
-import skimage.filters as skfilt # Needed for an automatic threshold of the original images
-from scipy.ndimage.morphology import binary_fill_holes
-from sklearn.neighbors import NearestNeighbors
 from numba import njit
-
 
 def normalise_image(img, force_max=None):
     """
@@ -103,7 +100,7 @@ def particle_pair(particles, props, particle_pixel_size, rhos=200):
 
     return rho_ctrs, g
 
-# @njit
+@njit
 def particle_pair_numba(particles_num, props_num, rho_edges):
     """
     My function computing particle pairs. Note : it does take into account the 
@@ -145,9 +142,9 @@ def particle_pair_numba(particles_num, props_num, rho_edges):
     return rho_ctrs, g
     
     
-# @njit
+@njit
 def normalization(particles_num, rho_edges, props_num):
-    """ Normalization of the g(r) function due to the particle edges
+    """ Normalization of the g(rhos) function due to the particle edges
      
     When the "rho" (interparticle distance) at which the g(rho) function is evaluated
     intersects the boundaries of the frame, this function
@@ -194,3 +191,40 @@ def normalization(particles_num, rho_edges, props_num):
         result[:,rh_no] = (2*np.pi - a_corner)*(rho_edges[rh_no+1]**2 - rho_edges[rh_no]**2)/2
 
     return result
+
+def percus_yevick(rhos, phi):
+    """
+    Percus Yevick (analytical) pair correlation
+    for hard spheres. Taken from Wikipedia (C code)
+    
+    Args 
+    ----
+    > rhos : normalised distances between particles (divided by particle diameter) [1D np.array]
+    > phi : your volume fraction [FLOAT]
+
+    Returns
+    ----
+    > g_PY : percus Yevick volume fraction [1D np.array, same size as rhos]
+
+    """
+    qr = np.pi*rhos
+    a = (1+2*phi)**2/(1-phi)**4
+    b = -6*phi*(1+phi/2)**2/(1-phi)**4
+    c = phi/2*(1+2*phi)**2/(1-phi)**4
+    A = 2*qr
+    Q1 = a/A**2*(np.sin(A) - A*np.cos(A))
+    Q2 = b/A**3*(2*A*np.sin(A) + (2-A**2)*np.cos(A) - 2)
+    Q3 = c/A**5*(-A**4*np.cos(A) + 4*((3*A**2-6)*np.cos(A) + A*(A**2-6)*np.sin(A)+6))
+    g = Q1 + Q2 + Q3  
+
+    return 1/(1+24*phi*g/A)
+
+
+
+def export_g_rho(rho_ctrs, g_exp, g_PY, file_name='data.csv'):
+    """
+    Function that exports g(r) both experimental and Percus Yevick.
+    
+    """
+    data = pd.DataFrame({'rho':rho_ctrs, 'g_exp':g_exp, 'g_PY': g_PY})
+    data.to_csv(file_name)
