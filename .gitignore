@@ -3,3 +3,5 @@
 *.csv
 *.lsm
 *.jpg
+*.ipynb 
+!particle_pair_example.ipynb
