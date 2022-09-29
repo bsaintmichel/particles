@@ -62,6 +62,9 @@ def loadLSM(path_to_file):
 ### Data processing functions ("main" functions) --------------------------------------------------------------
 ############################################################################
 
+def blague(argument1, argument2):
+    return 0
+
 def particle_pair(particles, props, particle_pixel_size, rhos=200):
     """
     A wrapper that calls 'particle_pair_numba' to compute 
