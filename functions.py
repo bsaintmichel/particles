@@ -4,22 +4,32 @@ import pandas as pd
 import numpy as np
 import pims
 from numba import njit
+import pims
+from PIL import Image
 
-def normalise_image(img, force_max=None):
+def load_img(path_to_file):
     """
-    Function that normalises an image
-    """    
-    if force_max is None:
-        max_image = np.max(img)
-    else:
-        max_image = force_max
-    
-    img = np.double(img)
-    img_temp = np.round(255*(img - np.min(img))/(max_image - np.min(img)))
-    img_temp[img_temp > 255] = 255
-    return img_temp
+    A friendly routine that reads (as many as possible) image file formats
+    as possible.
 
-def loadLSM(path_to_file):
+    Arg
+    ----
+    > 'path_to_file' : path to your image file
+
+    Returns 
+    -------
+    > 'img' : the images in question (N_x times N_y (times N_z) times N_t)
+    > 'info' : the metadata of the picture  
+    """
+    ext = path_to_file.rsplit('.')[-1]
+    if ext in ['tif', 'png', 'jpg', 'jpeg', 'bmp']:
+        img = Image.open(path_to_file, mode='r')
+        info = {'width': np.shape(img)[1], 'height': np.shape(img)[0]}
+    else:
+        img, info = load_bioformats(path_to_file)
+    return img, info
+
+def load_bioformats(path_to_file):
     """
     A bit of code to read a .lsm (confocal stack) file
     directly. 
@@ -61,9 +71,6 @@ def loadLSM(path_to_file):
 ############################################################################
 ### Data processing functions ("main" functions) --------------------------------------------------------------
 ############################################################################
-
-def blague(argument1, argument2):
-    return 0
 
 def particle_pair(particles, props, particle_pixel_size, rhos=200):
     """
@@ -228,6 +235,18 @@ def export_g_rho(rho_ctrs, g_exp, g_PY, file_name='data.csv'):
     """
     Function that exports g(r) both experimental and Percus Yevick.
     
+    Args
+    ----
+    > rho_ctrs : center of your bins, as obtained by running `particle_pair`
+    > g_exp : the g(rho) obtained using `particle_pair` too
+    > g_PY : the g(rho) obtained by using  `percus_yevick`
+    > file_name : a relative or complete file_name for the export.
+
+    Returns  
+    ----
+    > A file given by argument `file_name`
+
     """
     data = pd.DataFrame({'rho':rho_ctrs, 'g_exp':g_exp, 'g_PY': g_PY})
     data.to_csv(file_name)
+    return 0
